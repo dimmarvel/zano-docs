@@ -81,21 +81,19 @@ However, to provide more complete guidance, the examples below use a more advanc
 
 **Note on view key generating: L and main subgroup**
 
-The GW address view key is a point on the Ed25519 curve. The Ed25519 curve has order `8 * L`, where `L` is the order of the prime-order subgroup:
+The GW address view key must be a point in the main prime-order subgroup of Ed25519, whose order is:
 
 [Wiki Curve25519 L magic number](https://en.wikipedia.org/wiki/Curve25519)
 ```
 L = 2^252 + 27742317777372353535851937790883648493 
 ```
 
-If the secret scalar is chosen arbitrarily (without the restriction `< L`), the resulting point may contain a **torsion component**, a small multiplier of order 2, 4, or 8. Such points lie outside the main subgroup and create a vulnerability: two different scalars can generate the same point (address collision).
-
-During registration, Zano Core verifies that `view_pub_key` belongs to the main L-subgroup (no torsion). Therefore, when generating a view key, you need to:
+During registration, Zano Core verifies that `view_pub_key` belongs to this L-subgroup (no torsion component). To generate a view key:
 
 1. Select a random scalar `s` in the range `[1, L-1]`
-2. Compute the public key as `s * G` 
+2. Compute the public key as `s * G`
 
-This ensures that the public key resides in the main subgroup and that the registration will pass validation.
+A key computed as `s * G` is always in the main subgroup, since the base point `G` has order `L` — torsion cannot occur here for any `s`. Reducing `s` into `[1, L-1]` isn't needed to avoid torsion; it only keeps the secret scalar canonical (`s` and `s + L` yield the same key). The subgroup check exists to reject malformed points that were *not* derived as `s * G`.
 
 **ECDSA low-S normalisation**
 
@@ -343,8 +341,13 @@ Destinations can be both regular addresses (`Z...`) and other GW addresses (`gwZ
   "id": 0,
   "result": {
     "status": "OK",
+    "tx_id": "a6e8da986858e6825fce7a192097e6afae4e889cabe853a9c29b964985b23da8",
     "tx_hash_to_sign": "20e922b32dfe9b8b6bc6004e40f4198c9e966d5e228cd4830656ba967f8a205c",
-    "tx_blob": "040141004dbaa579daf3c4a91e6be2efde9568975f7b506b50d18bbefd6f03132b2ef18074c32d3eaafafc623bf483e858d42e8bf4ec7df064ada2e34934469cff6b626880988be49903000516787ebe13ed53f6e5225ef5c481024b7f331a42fefa6d859c785521116659150a1700000b0217ce0b0264e42700e40b5402000000023f00f2085ea66732a56db0771aefcaa9c9fcb7828bcf4275d45579c5921d13516df041eacba1733953ed9dd2d2672d20c866076477c32e061536deb1245cb2804137e64ba3acd47465143f7e568afc2c1c3add2b9ffc13520feec9cb8ee734dbd3a574c32d3eaafafc623bf483e858d42e8bf4ec7df064ada2e34934469cff6b6268d2ff9f07847d62ebc7202bc521e74f94003f007e5ad2eab4fb7f4a0b19177b593043e30640993e7c844397767c8a22e91521bb97c2d275ee1760109f93d2021cfebffd73aa1e0da75a3cbd737910de3fbe92fb4bbb7523374f82711e894d357b82283f5df7963769d77a80572c0612b0be151374c32d3eaafafc623bf483e858d42e8bf4ec7df064ada2e34934469cff6b6268e359da40dc207efd55f19663586410d00006000143004600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000032e002f07b6039875cc562b68a034d3acd220672f7213dce03a425deba13c9a01759d65b1c4e06210da36d87f7c6a81c46cd43ec869018e0b2497f6adf79f06aaad6a3080793811d4059534b25449addbcaa1ac642cb9086dbf060d0a8cd685d05532ef23c7e85c9eac2533d21571249799722f491f4318c1426b2ee61cb9575e824302bb95a145a2cb71a682fb652d431f8f17dd66e0036decc89a17784a5d84f4000e36580e5e0bd1bca7d3d4575c2ecec56afdb85ab06986bb35613262fd12e8080482d68d09e8e9b43779f6f9913977935ce00dc2b47e8121ab24d17cf8999992b0c2075effe6cd4b0ad21ac3a310a94cc5b481373c05960cb1ae134d75f8184005e45fc1134f2bd4de031826856e494d4d06e4b2d3164e98b752b4f559df5169b986378c0fd4ddbada717875a15097773974fec4a8419dcdad4fdceb7d6fa5ad71072f36a5888dedc29c3beabcc0784c1035cde704d14d799ee794558b1bfb839537a6663da725062aaa83bee9896eceffaf1236799bb59c7b9bc98c4c20414f254fd151438a6f4208e02bfa6050414dfb1df3c2e41d1173ee9c1da2b60e1fbf84519bad7690be9d01c927da4aa3ee59a7b292caafba860fe1687c344994e80f6b18f5853acfac90be73993e4658de57d6e15b242c8774816433e3a13c1e385bb649efe87e18a75624bd47b25e8414a6b7c2a2deea6988576d8ddeae0be1f689bfe7679f77afe745cf1d819b0d18783aef1122fa1a22917b95a0495b965aad389907aaf96dd1744f4ad5d615e5f46c0853ac8f5a43d404e576db9112eb10182a55f8047b96f8bdb3d0c7b04a2fcef6faa4b732b74d142158bbaba42f32a4216e22a60f33a99867067d22fae284cbefd0e77116ab5274d6fd904725cb23736c4a6d020102932a7296485c475d663f3da145150687fd97f229cb875b0723fad6e9ff545cf90dfa73f05cfb4b90a784d3baea4314a9fc99bb0be5e1eb9bf14341fcb3178a5102fdf319fbafb71264060a697b4b312111ebe4eee25afb2c6c3e12bdda4ed7ea0e433d03150eae875856e1ccba6d70d804747b22b7961bd2a332364919d0d5380002e2f5cac81634c1d768b2a61bb39fda2016fb0bdb75dec9277baa70d4ade8b9069eb890a3c331fd1e45f16fb76adaeaa090a8aa3af3691c0a4c6127ae4213dd0ac55f3f8d223f7f7ee7151e12d4ba8367b2c2bc299b5d30fa8056e7a95c1eb40c30e72c83b96c57d3c13f804e58c20571ef9c934860cbf66746a780e9dfa2444f0221bb69bc9c2099d3672bb30d95b4d1299c57d1b1ad077ea53b9887fc401cf70ab29cdb7bd636d417506749ab6aaae4d00395d8aaa4d5d82ec596c60d850db10e"
+    "tx_blob": "040141004dbaa579daf3c4a91e6be2efde9568975f7b506b50d18bbefd6f03132b2ef18074c32d3eaafafc623bf483e858d42e8bf4ec7df064ada2e34934469cff6b626880988be49903000516787ebe13ed53f6e5225ef5c481024b7f331a42fefa6d859c785521116659150a1700000b0217ce0b0264e42700e40b5402000000023f00f2085ea66732a56db0771aefcaa9c9fcb7828bcf4275d45579c5921d13516df041eacba1733953ed9dd2d2672d20c866076477c32e061536deb1245cb2804137e64ba3acd47465143f7e568afc2c1c3add2b9ffc13520feec9cb8ee734dbd3a574c32d3eaafafc623bf483e858d42e8bf4ec7df064ada2e34934469cff6b6268d2ff9f07847d62ebc7202bc521e74f94003f007e5ad2eab4fb7f4a0b19177b593043e30640993e7c844397767c8a22e91521bb97c2d275ee1760109f93d2021cfebffd73aa1e0da75a3cbd737910de3fbe92fb4bbb7523374f82711e894d357b82283f5df7963769d77a80572c0612b0be151374c32d3eaafafc623bf483e858d42e8bf4ec7df064ada2e34934469cff6b6268e359da40dc207efd55f19663586410d00006000143004600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000032e002f07b6039875cc562b68a034d3acd220672f7213dce03a425deba13c9a01759d65b1c4e06210da36d87f7c6a81c46cd43ec869018e0b2497f6adf79f06aaad6a3080793811d4059534b25449addbcaa1ac642cb9086dbf060d0a8cd685d05532ef23c7e85c9eac2533d21571249799722f491f4318c1426b2ee61cb9575e824302bb95a145a2cb71a682fb652d431f8f17dd66e0036decc89a17784a5d84f4000e36580e5e0bd1bca7d3d4575c2ecec56afdb85ab06986bb35613262fd12e8080482d68d09e8e9b43779f6f9913977935ce00dc2b47e8121ab24d17cf8999992b0c2075effe6cd4b0ad21ac3a310a94cc5b481373c05960cb1ae134d75f8184005e45fc1134f2bd4de031826856e494d4d06e4b2d3164e98b752b4f559df5169b986378c0fd4ddbada717875a15097773974fec4a8419dcdad4fdceb7d6fa5ad71072f36a5888dedc29c3beabcc0784c1035cde704d14d799ee794558b1bfb839537a6663da725062aaa83bee9896eceffaf1236799bb59c7b9bc98c4c20414f254fd151438a6f4208e02bfa6050414dfb1df3c2e41d1173ee9c1da2b60e1fbf84519bad7690be9d01c927da4aa3ee59a7b292caafba860fe1687c344994e80f6b18f5853acfac90be73993e4658de57d6e15b242c8774816433e3a13c1e385bb649efe87e18a75624bd47b25e8414a6b7c2a2deea6988576d8ddeae0be1f689bfe7679f77afe745cf1d819b0d18783aef1122fa1a22917b95a0495b965aad389907aaf96dd1744f4ad5d615e5f46c0853ac8f5a43d404e576db9112eb10182a55f8047b96f8bdb3d0c7b04a2fcef6faa4b732b74d142158bbaba42f32a4216e22a60f33a99867067d22fae284cbefd0e77116ab5274d6fd904725cb23736c4a6d020102932a7296485c475d663f3da145150687fd97f229cb875b0723fad6e9ff545cf90dfa73f05cfb4b90a784d3baea4314a9fc99bb0be5e1eb9bf14341fcb3178a5102fdf319fbafb71264060a697b4b312111ebe4eee25afb2c6c3e12bdda4ed7ea0e433d03150eae875856e1ccba6d70d804747b22b7961bd2a332364919d0d5380002e2f5cac81634c1d768b2a61bb39fda2016fb0bdb75dec9277baa70d4ade8b9069eb890a3c331fd1e45f16fb76adaeaa090a8aa3af3691c0a4c6127ae4213dd0ac55f3f8d223f7f7ee7151e12d4ba8367b2c2bc299b5d30fa8056e7a95c1eb40c30e72c83b96c57d3c13f804e58c20571ef9c934860cbf66746a780e9dfa2444f0221bb69bc9c2099d3672bb30d95b4d1299c57d1b1ad077ea53b9887fc401cf70ab29cdb7bd636d417506749ab6aaae4d00395d8aaa4d5d82ec596c60d850db10e",
+    "tx_secret_key": "2e0b840e70dba386effd64c5d988622dea8c064040566e6bf035034cbb54a5c08",
+    "outputs_addresses": [
+      "ZxCBjKr7pukfAKj5uiR2kbYPAu56F4rxVVH6m6m4Uk6f5zusV6xPKhW1LStNDiibPjjNWXUYKSmUScphZjZHfzpX32JyFYyBv"
+    ]
   }
 }
 ```
@@ -1033,8 +1036,10 @@ Optional field `meta_info` can be included in `new_descriptor_info` to update th
   "id": 0,
   "result": {
     "status": "OK",
+    "tx_id": "3f9a1c7e2b5d8046a1c3e5f70819243b5c6d7e8f90a1b2c3d4e5f60718293a4b",
     "tx_hash_to_sign": "3cd7020bacebd3d7c06d4f80a5d5041f1700329ea4b3ea3104b1e65b49f0f4f0",
-    "tx_blob": "0401..."
+    "tx_blob": "0401...",
+    "tx_secret_key": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcd0f"
   }
 }
 ```
@@ -1187,6 +1192,54 @@ async function changeGatewayOwner(addressId, currentOwnerPubKey, currentOwnerSec
 ```
 ---
 
+## 9. Verify an unsigned transaction before signing - `decrypt_tx_outs_and_update_op`
+
+Both `gateway_create_transfer` and `gateway_create_owner_change` return an unsigned `tx_blob` and its `tx_secret_key`. Before signing, decode that transaction on your own node to confirm it matches your intent.
+
+> Uses `tx_secret_key` to decrypt sensitive data - call it only against **your own local daemon**.
+
+**Request** (daemon JSON-RPC):
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 0,
+  "method": "decrypt_tx_outs_and_update_op",
+  "params": {
+    "tx_blob": "0401...",
+    "tx_secret_key": "...",
+    "outputs_addresses": ["ZxCBjKr7..."],
+    "strict_output_addresses_match": false
+  }
+}
+```
+
+Take `tx_blob`, `tx_secret_key` and `outputs_addresses` from the create response; for an owner change pass `"outputs_addresses": []`. The response contains `verified_tx_id` plus exactly **one** of `normal_transfer`, `gw_update`, or `asset_update`.
+
+**Transfer** - result under `normal_transfer`. Check that `verified_tx_id` equals the create response's `tx_id`, that `normal_transfer` is present, and that every `decoded_outputs` entry matches an intended `amount` / `asset_id` / `address` with no extras:
+
+```json
+"normal_transfer": {
+  "decoded_outputs": [
+    { "amount": 1000000000000, "address": "ZxCBjKr7...", "asset_id": "d6329b5b...", "out_index": 0, "payment_id": 0 }
+  ]
+}
+```
+
+**Owner change** - result under `gw_update`. Check that `verified_tx_id` equals `tx_id`, that `gw_update` is present, and that `gw_updated_descriptor` holds the GW address you are changing and the new owner key you intended to set:
+
+```json
+"gw_update": {
+  "decoded_outputs": [],
+  "gw_updated_descriptor": {
+    "opt_gateway_address": "gwZ...",
+    "opt_owner_custom_schnorr_pub_key": "77f53dd0..."
+  }
+}
+```
+
+Sign and broadcast only after these checks pass.
+
 ## API quick reference
 
 | Method | RPC type | Description |
@@ -1197,6 +1250,7 @@ async function changeGatewayOwner(addressId, currentOwnerPubKey, currentOwnerSec
 | [gateway_sign_transfer](https://docs.zano.org/docs/build/rpc-api/daemon-rpc-api/gateway_sign_transfer) | Daemon RPC | Sign a transaction with owner key |
 | [gateway_create_owner_change](https://docs.zano.org/docs/build/rpc-api/daemon-rpc-api/gateway_create_owner_change) | Daemon RPC | Create an unsigned owner change transaction |
 | [gateway_sign_owner_change](https://docs.zano.org/docs/build/rpc-api/daemon-rpc-api/gateway_sign_owner_change) | Daemon RPC | Sign and broadcast an owner change transaction |
+| [decrypt_tx_outs_and_update_op](https://docs.zano.org/docs/build/rpc-api/daemon-rpc-api/decrypt_tx_outs_and_update_op) | Daemon RPC | Decode an unsigned tx to verify outputs / owner change before signing |
 | [sendrawtransaction](https://docs.zano.org/docs/build/rpc-api/daemon-rpc-api/sendrawtransaction) | Daemon RPC | Broadcast a signed transaction to the network |
 | [gateway_get_address_history](https://docs.zano.org/docs/build/rpc-api/daemon-rpc-api/gateway_get_address_history) | Daemon RPC | Get GW address transaction history (requires view key for decryption) |
 | [get_integrated_address](https://docs.zano.org/docs/build/rpc-api/daemon-rpc-api/get_integrated_address) | Daemon RPC | Create an integrated `gwiZ...` address with payment ID |
