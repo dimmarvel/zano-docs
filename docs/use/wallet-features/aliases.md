@@ -1,5 +1,5 @@
 ---
-sidebar_position: 3
+sidebar_position: 1
 slug: /use/aliases
 ---
 
@@ -13,7 +13,7 @@ To reduce the possibility of phishing, we set limitations on alias registrations
 
 :::note
 
-Aliases shorter than 6 characters can only be issued by the Zano Core Team. Users can win one by participating in our monthly community events.
+Aliases shorter than 6 characters can only be issued by the Zano Core Team, which occasionally gives them away during community events. Short aliases also appear on the [Alias Auction](https://auction.zano.org).
 
 :::
 
@@ -44,6 +44,6 @@ Aliases can be used for more than just Zano transactions. Think of them as a dec
 
 :::note
 
-You will be able to trade your aliases on a upcoming Alias Auction Platform.
+Aliases can be traded on the [Alias Auction](https://auction.zano.org) platform.
 
 :::

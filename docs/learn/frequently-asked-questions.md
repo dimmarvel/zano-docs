@@ -1,5 +1,5 @@
 ---
-sidebar_position: 8
+sidebar_position: 6
 ---
 
 # Frequently Asked Questions
@@ -45,17 +45,21 @@ Zano and Monero share common roots in the CryptoNote protocol, and use similar c
 
 The biggest difference is in scope. Monero focuses on being private peer-to-peer digital cash. Zano is building a platform with a wider set of tools, including user-creatable privacy tokens, on-chain identity, and decentralized trading, all protected by the same privacy guarantees at the base layer.
 
-On the consensus side, Zano runs a hybrid PoW/PoS model instead of Monero's pure PoW. This makes the network harder to attack, since a bad actor would need to control both hash power and staked coins. It also gives us faster block times (1 minute vs. Monero's 2 minutes) and shorter lock-up periods (10 minutes vs. 20).
+On the consensus side, Zano runs a hybrid PoW/PoS model instead of Monero's pure PoW. This makes the network harder to attack, since a bad actor would need to control both hash power and staked coins. It also gives us faster block times (1 minute vs. Monero's 2 minutes) and shorter lock-up periods (10 minutes vs. 20). See [Hybrid PoW/PoS Consensus](/docs/learn/how-zano-works/consensus) for how the hybrid model works.
 
 ### How do I set up a Zano wallet?
 
-1. Go to the Apple/Play store or download from [zano.org/downloads](https://zano.org/downloads).
+1. Go to the Apple/Play store or download from [zano.org/wallets](https://zano.org/wallets).
 2. Create a wallet by following the steps in the app.
 3. Store your keys in a safe place.
 
 **Mobile wallet** is ideal for everyday transactions on the go. **Desktop wallet** runs a full local node, required for staking and offers the most complete feature set. See the [desktop wallet guide](/docs/use/wallets/gui-wallet) for a detailed walkthrough.
 
 See all compatible wallets: [zano.org/wallets](https://zano.org/wallets)
+
+### What is a seed phrase?
+
+To access the wallet in the event of a loss, you need something called a mnemonic recovery phrase or seed. This group of words that you received while creating your wallet is designed to add an extra layer of security. With these phrases you can easily restore lost wallets if you don't have the passkey. See the [seed phrase guide](/docs/use/seed-phrase) for how to store it safely.
 
 ### Where can I trade Zano?
 
@@ -75,10 +79,9 @@ Zano staking is done through the desktop wallet only, since it requires running 
 
 The Zano Trade DEX (Decentralized Exchange) is a platform for trading Zano and Confidential Assets within the Zano ecosystem, offering peer-to-peer trading without custodial risks. It leverages Ionic Swaps to maintain privacy during trades.
 
-- **Decentralized:** No central authority controls the exchange.
+- **Non-custodial:** Users retain control of their funds at all times; the site never takes custody.
 - **Privacy:** Trades are conducted with confidentiality through Ionic Swaps.
-- **Non-custodial:** Users retain control of their funds.
-- **Peer-to-peer:** Direct trading between users.
+- **Peer-to-peer settlement:** Orders are matched by the Zano Trade coordinator, but every trade settles on-chain as an Ionic Swap signed by both traders. You can also arrange a swap directly from the wallet, without the site.
 
 Learn more: [Zano Trade](/docs/use/zano-trade)
 
@@ -98,7 +101,7 @@ Anyone can easily issue user-creatable currencies and digital tokens on the Zano
 
 ### What are Ionic Swaps?
 
-Ionic Swaps are an improvement on Atomic Swaps, innovating seamless cryptocurrency exchanges while preserving user privacy. Ionic Swaps are a safe and consistent way to perform peer-to-peer swaps in which neither party has an unfair advantage. This technology is used by our DEX: Zano Trade.
+Ionic Swaps are an improvement on Atomic Swaps: a safe way to swap assets peer-to-peer, with privacy preserved and neither party holding an unfair advantage. This technology is used by our DEX: Zano Trade.
 
 ### What is an alias and how does it work?
 
@@ -108,17 +111,15 @@ Zano dApps can use alias-based authentication, as [Zano Matrix](/docs/use/zano-m
 
 ### What is Zarcanum?
 
-Zarcanum is the world's first Proof of Stake scheme that enhances traditional PoS with untraceability and hidden amounts, revolutionizing blockchain consensus. Thanks to this innovative approach, our stakers can stake in complete anonymity.
+Zarcanum is the world's first Proof-of-Stake scheme that enhances traditional PoS with untraceability and hidden amounts, revolutionizing blockchain consensus. Thanks to this innovative approach, our stakers can stake in complete anonymity. Read more on the [consensus page](/docs/learn/how-zano-works/consensus).
 
 ### How is the network secured?
 
-Zano uses a hybrid consensus algorithm that alternates between Proof-of-Work (PoW) and Proof-of-Stake (PoS) blocks.
-
-This approach combines the benefits of both mechanisms to enhance blockchain security and decentralization. If performing a 51% attack on Zano, one would need the majority of the hash rate **and** a significant amount of the total amount of staked coins, making the cost of an attack incredibly high, thus becoming infeasible.
+Zano uses a hybrid consensus algorithm that alternates between Proof-of-Work (PoW) and Proof-of-Stake (PoS) blocks. An attacker would need the majority of the hashrate **and** a large share of the staked coins at the same time, which makes an attack infeasible. See [Hybrid PoW/PoS Consensus](/docs/learn/how-zano-works/consensus) for how it works.
 
 ### What's the plan for scaling?
 
-We'll continue to improve our dynamic blocksize (which our team pioneered initially with CryptoNote). Horizontal L1 scaling (sharding) is also on our radar as a long-term direction we're excited about.
+We'll continue to improve our dynamic blocksize (which our team pioneered initially with CryptoNote). Horizontal layer-1 scaling (sharding) is also on our radar as a long-term direction we're excited about.
 
 ---
 
@@ -150,7 +151,9 @@ A Ring Signature is a type of digital signature that can be performed by any mem
 
 ### What is a mixin and what is it used for?
 
-The mixin count refers to the number of signatures (apart from yours) in the ring signature that authorizes the transaction. A higher mixin value will typically provide more privacy because it will provide greater plausible deniability. It is impossible for any observer to know which is the real source of the funds.
+The mixin (or decoy) count refers to the number of outputs, apart from yours, included in the ring signature that authorizes a transaction. The decoys give you plausible deniability: an observer cannot tell which ring member is the real source of the funds.
+
+On Zano, the ring size is enforced by the protocol at 15, so every regular transaction gets the same level of privacy. It is not a setting you need to choose or tune. (The one exception is [auditable wallets](/docs/use/auditable-wallets), which deliberately spend without decoys so their history stays verifiable.)
 
 ### Can I create auditable wallets on Zano for transparency when needed?
 
@@ -186,11 +189,11 @@ But if someone accepts ZANO or its Confidential Assets, you don't have to worry 
 
 ### Was Zano pre-mined, and how was it structured?
 
-Yes, the premine consisted of 3.6M ZANO; it was set aside for ongoing project expenses, marketing, partnerships, and to pay a loan to fund initial development back in 2018.
+Yes, the premine consisted of 3.69M ZANO; it was set aside for ongoing project expenses, marketing, partnerships, and to pay a loan to fund initial development back in 2018.
 
-As of July 2025, considering what has already been spent for development, the foundation fund sits at just ~4.4% of the total ZANO supply.
+Most of it has been spent on development over the years; the current foundation-fund figure is maintained on the [Emission page](/docs/learn/emission#the-premine-and-how-zano-will-be-funded).
 
-You can track the amount of the foundation fund via our [explorer](https://explorer.zano.org/) or by importing its tracking seed into your wallet:
+You can verify the fund's balance yourself at any time by importing its public tracking seed into your wallet:
 
 `aZxat4HAWriVQ3enkGcVsrZRdMseAJswG3CSEwTqZS246VsFQ53w26eZstYsu1jWE74Atz9ajLxFnBsVTafncWNH5SMv4zHFaTS:1780c4d5dd7e97cc4a75ea8baa7977d12ef948b9a6dddc2a9a37e5e22ac7180e:1599495055`
 
@@ -204,11 +207,11 @@ A premine was seen as a necessary step to ensure that Zano has the resources nee
 
 ### Can the Zano team dump on the market, or are their funds locked?
 
-No funds are locked; however, all foundation fund transactions are public, and as of July 2025, the fund represents less than 5% of the total supply.
+No funds are locked; however, the foundation fund is an [auditable wallet](/docs/use/auditable-wallets), so its balance and every transaction are publicly verifiable, and it represents only a small share of the total supply (current figure on the [Emission page](/docs/learn/emission#the-premine-and-how-zano-will-be-funded)).
 
 ### How does Zano ensure decentralization if the devs hold some supply?
 
-Besides the fact that the foundation fund sits below 5% of the supply, Proof of Stake incentives ensure that all holders remain honest, if they were to harm the network, they would be attacking their own investment.
+Besides the fact that the foundation fund is a small share of the supply (see the [Emission page](/docs/learn/emission#the-premine-and-how-zano-will-be-funded)), Proof-of-Stake incentives ensure that all holders remain honest, if they were to harm the network, they would be attacking their own investment.
 
 ### Is there a public breakdown of the ZANO token distribution?
 
@@ -232,7 +235,7 @@ Beyond making the foundation fund wallet publicly accessible and publishing mont
 
 ### Can I bridge assets like BTC or ETH to Zano?
 
-Yes. Zano supports cross-chain bridging, allowing users to move assets from other blockchains into the Zano ecosystem and benefit from its privacy features. One of the bridges that has integrated Zano is [Confidential Layer](https://confidentiallayer.com/), a protocol built on the [Bridgeless](https://bridgeless.com/) L1 blockchain that enables seamless, decentralized, and non-custodial bridging between various blockchains (like Ethereum and Bitcoin) and privacy chains like Zano. It allows users to move assets like BTC, BCH, and EVM tokens into privacy-focused environments.
+Yes. Zano supports cross-chain bridging, allowing users to move assets from other blockchains into the Zano ecosystem and benefit from its privacy features. One of the bridges that has integrated Zano is [Confidential Layer](https://confidentiallayer.com/), a protocol built on the [Bridgeless](https://bridgeless.com/) L1 blockchain that enables decentralized, non-custodial bridging between various blockchains (like Ethereum and Bitcoin) and privacy chains like Zano. It allows users to move assets like BTC, BCH, and EVM tokens into privacy-focused environments.
 
 This means users can upgrade their favorite crypto assets with the privacy and security of the Zano blockchain, bringing massive utility to Zano's ecosystem.
 
@@ -242,13 +245,13 @@ When bridging an asset to Zano using Confidential Layer, you receive its decentr
 
 ### How does Confidential Layer increase privacy? How is it different from mixers?
 
-It adds to bridged assets the same [technologies used by native Zano](#privacy-technologies).
+It adds to bridged assets the same [technologies used by native ZANO](#privacy-technologies).
 
 Unlike mixers, which obscure your transaction flow at a certain point (and you still need to watch your steps after), Confidential Layer cryptographically hides your balance, the data is never visible in the first place.
 
 ### How are the wrapped assets stored?
 
-In Zano wallets, both the official wallet and multicoin wallets like Edge, Cake Wallet, and Bitcoin.com.
+In Zano wallets. The official apps support all Confidential Assets, and among multicoin wallets, Edge and Bitcoin.com support them too. Cake Wallet currently supports native ZANO.
 
 ### How does unwrapping work?
 
@@ -294,18 +297,16 @@ Zano is designed as a **decentralized, permissionless network**, which means it 
 
 ### When trying to send coins I get an error stating that the transaction is too large.
 
-This is due to sending many small inputs to the address. The solution is to split up the transaction and send smaller amounts.
-
-### What is a seed phrase?
-
-To access the wallet in the event of a loss, you need something called a mnemonic recovery phrase or seed. This group of words that you received while creating your wallet is designed to add an extra layer of security. With these phrases you can easily restore lost wallets if you don't have the passkey.
+The amount is composed of too many small inputs; split it up and send smaller amounts. See [Common Issues](/docs/use/troubleshooting/common-issues) for details.
 
 ### Why does the desktop wallet take so long to start?
 
-Zano wallet is a full node application. Due to loading the blockchain and multiple wallets synchronizing, start time depends on your system specifications and may be bottlenecked by internet connection speed.
+Zano wallet is a full node application: it loads the blockchain and synchronizes your wallets on startup, so start time depends on your system specifications and connection speed. See [Common Issues](/docs/use/troubleshooting/common-issues) for details.
 
 ### Where can I get support?
 
-- **General issues**: [GitHub Issues](https://github.com/hyle-team/zano/issues) or [Discord #support](https://discord.gg/wE3rmYY)
+- **Official support**: open a ticket at [zano.org/support](https://zano.org/support); the support team replies by email. For anything involving your wallet or funds, use this channel. See [Reporting Issues](/docs/use/reporting-issues) for details and log locations.
+- **Community**: the [Zano Forum](https://forum.zano.org) and [Discord](https://discord.gg/wE3rmYY). These are community spaces. Support will never DM you first, and no one legitimate will ever ask for your seed phrase.
+- **Developers**: reproducible code bugs go to [GitHub Issues](https://github.com/hyle-team/zano/issues).
 - **Zano Trade support**: [@zano_trade_support](https://t.me/zano_trade_support)
 - **Critical network updates**: [@zano_critical](https://t.me/zano_critical)

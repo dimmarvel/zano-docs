@@ -4,6 +4,7 @@ import rehypeKatex from 'rehype-katex';
 
 const config = {
   title: "Zano Docs",
+  titleDelimiter: "·",
   tagline: "Blockchain privacy for mass adoption",
   favicon: "img/favicon.ico",
 
@@ -31,10 +32,67 @@ const config = {
           sidebarPath: './sidebars.js',
           remarkPlugins: [remarkMath],
           rehypePlugins: [rehypeKatex],
+          // the RPC reference is served by the versioned "api" instance below
+          exclude: [
+            "**/_*.{js,jsx,ts,tsx,md,mdx}",
+            "**/_*/**",
+            "build/rpc-api/**",
+          ],
         },
         theme: {
           customCss: './src/css/custom.css',
         },
+      },
+    ],
+  ],
+
+  plugins: [
+    [
+      // Versioned RPC API reference: own instance, same folder, same URLs.
+      // lastVersion "current" + path "" keeps the working folder (mainnet)
+      // at the clean base path even once snapshots exist — do not remove.
+      "@docusaurus/plugin-content-docs",
+      {
+        id: "api",
+        // content lives OUTSIDE docs/ — nesting it there makes both instances'
+        // webpack mdx rules chain and double-compile every page (spike finding).
+        // The route below still serves the original URLs unchanged.
+        // docs/build/rpc-api (if recreated by the build bot) stays excluded in
+        // the default instance and acts as staging input only.
+        path: "api-reference",
+        routeBasePath: "docs/build/rpc-api",
+        sidebarPath: "./sidebarsApi.js",
+        remarkPlugins: [remarkMath],
+        rehypePlugins: [rehypeKatex],
+        lastVersion: "current",
+        versions: {
+          current: {
+            label: "Mainnet (2.2.1.502)",
+            path: "",
+          },
+          testnet: {
+            label: "Testnet (2.2.1.502)",
+            path: "testnet",
+            banner: "unreleased",
+          },
+        },
+      },
+    ],
+    [
+      "@docusaurus/plugin-client-redirects",
+      {
+        redirects: [
+          // Phase 3 IA restructure (2026-08): pages merged or moved between tabs
+          { from: "/docs/learn/zano-features/overview", to: "/docs/learn/how-zano-works" },
+          { from: "/docs/learn/specifications", to: "/docs/learn/emission" },
+          { from: "/docs/learn/whitepaper", to: "/docs/learn/research" },
+          { from: "/docs/learn/reviews", to: "/docs/learn/research" },
+          { from: "/docs/learn/password-specs", to: "/docs/build/password-specs" },
+          // pre-restructure slug fix debt: old .md-suffixed URL
+          { from: "/docs/use/zano-passwords.md", to: "/docs/use/zano-passwords" },
+          // deeplinks page lives in the Build tab but had a /use/ slug
+          { from: "/docs/use/deeplinks", to: "/docs/build/deeplinks" },
+        ],
       },
     ],
   ],
@@ -51,6 +109,11 @@ const config = {
 
   themeConfig: {
     image: "img/zano_dev_meta.png",
+    colorMode: {
+      defaultMode: "dark",
+      disableSwitch: false,
+      respectPrefersColorScheme: true,
+    },
     navbar: {
       title: "Zano Docs",
       logo: {
@@ -71,8 +134,10 @@ const config = {
           label: "Use",
         },
         {
-          type: "docSidebar",
-          sidebarId: "buildSidebar",
+          // plain link with activeBaseRegex so the Build tab also highlights
+          // on the versioned API instance's pages (same /docs/build/ prefix)
+          to: "/docs/build/overview",
+          activeBaseRegex: "^/docs/build/",
           position: "left",
           label: "Build",
         },
@@ -93,7 +158,11 @@ const config = {
           sidebarId: "codeSidebar",
           position: "left",
           label: "Code",
-        },        
+        },
+        {
+          type: "custom-apiVersionDropdown",
+          position: "right",
+        },
         {
           href: "https://github.com/hyle-team/zano",
           label: "GitHub",
@@ -152,6 +221,10 @@ const config = {
               label: "Wrapped Zano",
               to: "https://wrapped.zano.org",
             },
+            {
+              label: "Support",
+              to: "https://zano.org/support",
+            },
           ],
         },
         {
@@ -162,7 +235,7 @@ const config = {
               to: "https://explorer.zano.org",
             },
             {
-              label: "Github",
+              label: "GitHub",
               to: "https://github.com/hyle-team/zano",
             },
           ],
@@ -170,6 +243,10 @@ const config = {
         {
           title: "Community",
           items: [
+            {
+              label: "Forum",
+              to: "https://forum.zano.org",
+            },
             {
               label: "Discord",
               to: "https://discord.gg/wE3rmYY",
@@ -183,7 +260,7 @@ const config = {
               to: "https://t.me/zanocoin",
             },
             {
-              label: "Youtube",
+              label: "YouTube",
               to: "https://www.youtube.com/@zanoproject",
             },
             {
@@ -198,6 +275,7 @@ const config = {
     prism: {
       theme: prismThemes.github,
       darkTheme: prismThemes.dracula,
+      additionalLanguages: ["bash", "json", "diff"],
     },
     algolia: {
       appId: 'GZR5BV1JNU',

@@ -95,21 +95,19 @@ However, to provide more complete guidance, the examples below use a more advanc
 
 **Note on view key generating: L and main subgroup**
 
-The GW address view key is a point on the Ed25519 curve. The Ed25519 curve has order `8 * L`, where `L` is the order of the prime-order subgroup:
+The GW address view key must be a point in the main prime-order subgroup of Ed25519, whose order is:
 
 [Wiki Curve25519 L magic number](https://en.wikipedia.org/wiki/Curve25519)
 ```
 L = 2^252 + 27742317777372353535851937790883648493 
 ```
 
-If the secret scalar is chosen arbitrarily (without the restriction `< L`), the resulting point may contain a **torsion component** — a small multiplier of order 2, 4, or 8. Such points lie outside the main subgroup and create a vulnerability: two different scalars can generate the same point (address collision).
-
-During registration, Zano Core verifies that `view_pub_key` belongs to the main L-subgroup (no torsion). Therefore, when generating a view key, you need to:
+During registration, Zano Core verifies that `view_pub_key` belongs to this L-subgroup (no torsion component). To generate a view key:
 
 1. Select a random scalar `s` in the range `[1, L-1]`
-2. Compute the public key as `s * G` 
+2. Compute the public key as `s * G`
 
-This ensures that the public key resides in the main subgroup and that the registration will pass validation.
+A key computed as `s * G` is always in the main subgroup, since the base point `G` has order `L` — torsion cannot occur here for any `s`. Reducing `s` into `[1, L-1]` isn't needed to avoid torsion; it only keeps the secret scalar canonical (`s` and `s + L` yield the same key). The subgroup check exists to reject malformed points that were *not* derived as `s * G`.
 
 **ECDSA low-S normalisation**
 
@@ -363,7 +361,11 @@ Destinations can be both regular addresses (`Z...`) and other GW addresses (`gwZ
     "status": "OK",
     "tx_id": "a6e8da986858e6825fce7a192097e6afae4e889cabe853a9c29b964985b23da8",
     "tx_hash_to_sign": "20e922b32dfe9b8b6bc6004e40f4198c9e966d5e228cd4830656ba967f8a205c",
-    "tx_blob": "0401..."
+    "tx_blob": "0401...4a5c08",
+    "tx_secret_key": "2e0b840e70dba386effd64c5d988622dea8c064040566e6bf035034cbb54a5c08",
+    "outputs_addresses": [
+      "ZxCBjKr7pukfAKj5uiR2kbYPAu56F4rxVVH6m6m4Uk6f5zusV6xPKhW1LStNDiibPjjNWXUYKSmUScphZjZHfzpX32JyFYyBv"
+    ]
   }
 }
 ```
@@ -1261,6 +1263,54 @@ async function changeGatewayOwner(addressId, currentOwnerWallet, newOwnerPubKey)
 ```
 ---
 
+## 9. Verify an unsigned transaction before signing - `decrypt_tx_outs_and_update_op`
+
+Both `gateway_create_transfer` and `gateway_create_owner_change` return an unsigned `tx_blob` and its `tx_secret_key`. Before signing, decode that transaction on your own node to confirm it matches your intent.
+
+> Uses `tx_secret_key` to decrypt sensitive data - call it only against **your own local daemon**.
+
+**Request** (daemon JSON-RPC):
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 0,
+  "method": "decrypt_tx_outs_and_update_op",
+  "params": {
+    "tx_blob": "0401...",
+    "tx_secret_key": "...",
+    "outputs_addresses": ["ZxCBjKr7..."],
+    "strict_output_addresses_match": false
+  }
+}
+```
+
+Take `tx_blob`, `tx_secret_key` and `outputs_addresses` from the create response; for an owner change pass `"outputs_addresses": []`. The response contains `verified_tx_id` plus exactly **one** of `normal_transfer`, `gw_update`, or `asset_update`.
+
+**Transfer** - result under `normal_transfer`. Check that `verified_tx_id` equals the create response's `tx_id`, that `normal_transfer` is present, and that every `decoded_outputs` entry matches an intended `amount` / `asset_id` / `address` with no extras:
+
+```json
+"normal_transfer": {
+  "decoded_outputs": [
+    { "amount": 1000000000000, "address": "ZxCBjKr7...", "asset_id": "d6329b5b...", "out_index": 0, "payment_id": 0 }
+  ]
+}
+```
+
+**Owner change** - result under `gw_update`. Check that `verified_tx_id` equals `tx_id`, that `gw_update` is present, and that `gw_updated_descriptor` holds the GW address you are changing and the new owner key you intended to set:
+
+```json
+"gw_update": {
+  "decoded_outputs": [],
+  "gw_updated_descriptor": {
+    "opt_gateway_address": "gwZ...",
+    "opt_owner_custom_schnorr_pub_key": "77f53dd0..."
+  }
+}
+```
+
+Sign and broadcast only after these checks pass.
+
 ## API quick reference
 
 | Method | RPC type | Description |
@@ -1271,6 +1321,7 @@ async function changeGatewayOwner(addressId, currentOwnerWallet, newOwnerPubKey)
 | [gateway_sign_transfer](https://docs.zano.org/docs/build/rpc-api/daemon-rpc-api/gateway_sign_transfer) | Daemon RPC | Sign a transaction with owner key |
 | [gateway_create_owner_change](https://docs.zano.org/docs/build/rpc-api/daemon-rpc-api/gateway_create_owner_change) | Daemon RPC | Create an unsigned owner change transaction; returns two domain-separated hashes to sign |
 | [gateway_submit_owner_change](https://docs.zano.org/docs/build/rpc-api/daemon-rpc-api/gateway_submit_owner_change) | Daemon RPC | Submit two signatures (transfer + ownership) and broadcast the owner change |
+| [decrypt_tx_outs_and_update_op](https://docs.zano.org/docs/build/rpc-api/daemon-rpc-api/decrypt_tx_outs_and_update_op) | Daemon RPC | Decode an unsigned tx to verify outputs / owner change before signing |
 | [sendrawtransaction](https://docs.zano.org/docs/build/rpc-api/daemon-rpc-api/sendrawtransaction) | Daemon RPC | Broadcast a signed transaction to the network |
 | [gateway_get_address_history](https://docs.zano.org/docs/build/rpc-api/daemon-rpc-api/gateway_get_address_history) | Daemon RPC | Get GW address transaction history (requires view key for decryption) |
 | [get_integrated_address](https://docs.zano.org/docs/build/rpc-api/daemon-rpc-api/get_integrated_address) | Daemon RPC | Create an integrated `gwiZ...` address with payment ID |

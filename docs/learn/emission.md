@@ -1,27 +1,45 @@
 ---
-sidebar_position: 6
+sidebar_position: 4
 ---
 
-# Emission/Tokenomics
+# Emission, Funding & Specifications
+
+### Specifications at a glance
+
+| General info              |                                                                        |
+| :------------------------ | ---------------------------------------------------------------------- |
+| Release                   | 2019                                                                   |
+| Currency                  | Zano                                                                   |
+| Symbol                    | ZANO                                                                   |
+| Hash algorithm            | ProgPowZ                                                               |
+| Language                  | C++                                                                    |
+| Blockchain                | PoS + PoW                                                              |
+| Ring size                 | 15 (protocol-enforced)                                                 |
+| **Emission**              |                                                                        |
+| Block Time                | 1 minute                                                               |
+| Block Reward              | 1 ZANO (fixed amount)                                                  |
+| Initial total supply      | 17517203 ZANO                                                          |
+| Maximum Supply            | Uncapped                                                               |
+| Yearly Inflation          | Ever-decreasing trend towards 0% (asymptotic)                          |
+| **Fee on TXs** (flat fee) | 0.01 ZANO                                                              |
+| Fee burn                  | 100% (all fees are burned)                                             |
+| **Resources**             |                                                                        |
+| Website                   | [https://zano.org/](https://zano.org/)                                 |
+| Repository                | [https://github.com/hyle-team/zano](https://github.com/hyle-team/zano) |
+| Explorer                  | [https://explorer.zano.org/](https://explorer.zano.org/)               |
+| **Requirements**          |                                                                        |
+| Wallet requirements       | 2 core x64 CPU, 3 GB RAM                                               |
+| Wallet platforms          | Windows 10/11 (x64), Linux (x64), macOS, Android, iOS                  |
 
 ### Where does the emission come from?
 
 Zano has a hybrid PoW/PoS consensus algorithm to secure the network and therefore emission is generated from two distinct sources:
 
-Proof of Work (PoW) mining, which creates new ZANO coins to reward miners for completing the calculations and therefore contributing to the network.
+Proof-of-Work (PoW) mining, which creates new ZANO coins to reward miners for completing the calculations and therefore contributing to the network.
 
-Proof of Stake (PoS) staking, which also creates new ZANO coins to reward users who stake their funds and therefore also contributing to the network's security.
+Proof-of-Stake (PoS) staking, which also creates new ZANO coins to reward users who stake their funds and therefore also contributing to the network's security.
 
-100% of the block reward goes to the miner or staker who found the block.
-
-| Emission specifications​ |                                               |
-| ------------------------ | --------------------------------------------- |
-| Block Time               | 1 minute                                      |
-| Block Reward             | 1 ZANO (fixed amount)                         |
-| Maximum Supply           | Uncapped                                      |
-| Yearly Inflation         | Ever-decreasing trend towards 0% (asymptotic) |
-| Fee on TXs (flat fee)    | 0.01 ZANO                                     |
-| Fee burn                 | 100% (all fees are burned)                    |
+100% of the block reward goes to the miner or staker who found the block. The key emission parameters are in the table above.
 
 ### Emission motivation
 
@@ -39,9 +57,7 @@ This combination of small, minimalistic daily emissions, together with daily bur
 
 ### Is the block reward enough to secure the network?
 
-Zano has a unique consensus system in which in order to perform the classic 51% attack, you need to have at least 51% PoW hashrate AND 51% PoS power (there can also be other ratios like 20%/90% and so on (see the [whitepaper](/docs/learn/whitepaper)).
-
-This way an attack becomes very expensive, in particular because the purchase of a significant portion of the coins on the market would dramatically increase the price. If you try to use a small percentage of PoS coins for the attack, then the PoW power necessary for the attack becomes 800% or more. This makes it possible to establish a relatively low block reward and at the same time provide a high security level for the transaction history.
+Yes. Zano's [hybrid PoW/PoS consensus](/docs/learn/how-zano-works/consensus) requires an attacker to control both the majority of the hashrate and a large share of the staked coins at the same time, which makes an attack expensive enough that the network stays secure on a relatively low block reward.
 
 ### The premine and how Zano will be funded
 
@@ -55,9 +71,9 @@ And so, a premine was seen as a necessary step to ensure that our next project, 
 
 #### Premine amount
 
-The premine consisted of 3.6M ZANO; it was set aside for ongoing project expenses, marketing, partnerships, and to pay a loan to fund initial development back in 2018.
+The premine consisted of 3.69M ZANO; it was set aside for ongoing project expenses, marketing, partnerships, and to pay a loan to fund initial development back in 2018.
 
-As of December 2024, considering what has already been spent for development, the foundation fund sits at just \~5,4% of the total ZANO supply.
+As of July 2026, considering what has already been spent for development, the foundation fund sits at about 2.9% of the total ZANO supply (roughly 440,000 ZANO).
 
 You can track the amount of the foundation fund via our [explorer](https://explorer.zano.org/) or by importing its tracking seed into your wallet:
 
@@ -67,7 +83,7 @@ You can track the amount of the foundation fund via our [explorer](https://explo
 
 The choice to implement a premine has enabled us to maintain a full-time, dedicated team on Zano from the start, even through the most brutal crypto winters. This strategic decision has allowed us to excel across multiple fronts:
 
-Development: We've continuously enhanced our blockchain technology with key upgrades like the Zarcanum hard fork, which introduced the world's first Private Proof of Stake model and support for issuing Confidential Assets.
+Development: We've continuously enhanced our blockchain technology with key upgrades like the Zarcanum hard fork, which introduced the world's first Private Proof-of-Stake model and support for issuing Confidential Assets.
 
 Marketing: The premine has funded efforts to boost our visibility, including securing listings on centralized exchanges and creating educational content.
 
@@ -75,11 +91,11 @@ Community Engagement: With the funds, we've supported various community initiati
 
 #### Decentralizing Zano's Foundation Fund
 
-Recognizing the importance of decentralization in cryptocurrency ethos, Zano is exploring ways to decentralize its development fund. One promising approach under consideration is the use of multisig wallets, where control over funds would be distributed among several keys, some of which could be held by community members or other trusted parties. This move would also tie well with our [upcoming governance voting system](https://zano.org/roadmap).
+Recognizing the importance of decentralization in cryptocurrency ethos, Zano is exploring ways to decentralize its development fund. One promising approach under consideration is the use of multisig wallets, where control over funds would be distributed among several keys, some of which could be held by community members or other trusted parties. This move also ties well with our on-chain governance voting system, live at [vote.zano.org](https://vote.zano.org).
 
 #### Future: Hybrid Sustainable Funding Model
 
-Understanding the constraints of solely depending on a premine, especially given that 78% has already been utilized, Zano is set to roll out a community crowdfunding initiative. This step is now practical due to our community's steady growth. By integrating this with the premine, we're establishing a hybrid funding model that, similar to our hybrid PoW/PoS consensus, capitalizes on the strengths of both approaches.
+Understanding the constraints of solely depending on a premine, especially given that about 88% of it has already been utilized, Zano is set to roll out a community crowdfunding initiative. This step is now practical due to our community's steady growth. By integrating this with the premine, we're establishing a hybrid funding model that, similar to our hybrid PoW/PoS consensus, capitalizes on the strengths of both approaches.
 
 #### What are the benefits of Community Crowdfunding?
 
@@ -89,4 +105,4 @@ Thanks to combining the existing premine reserves with funds sourced from the co
 
 #### Conclusion
 
-Zano's decision to implement a premine was grounded in both past experiences and the practical realities of cryptocurrency funding; it was essential for early development and growth, but with 78% spent, we are making steps towards decentralization, sustainability, and increasing community involvement. Zano is crafting a funding model that could serve as a blueprint for future crypto projects.
+Zano's decision to implement a premine was grounded in both past experiences and the practical realities of cryptocurrency funding; it was essential for early development and growth, but with most of it spent, we are making steps towards decentralization, sustainability, and increasing community involvement. Zano is crafting a funding model that could serve as a blueprint for future crypto projects.
