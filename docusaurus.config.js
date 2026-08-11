@@ -67,7 +67,7 @@ const config = {
         lastVersion: "current",
         versions: {
           current: {
-            label: "Mainnet (2.2.1.502)",
+            label: "Mainnet (2.2.1.506)",
             path: "",
           },
           testnet: {
