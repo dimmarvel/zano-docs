@@ -14,8 +14,9 @@
 #                   "Zano_testnet v..." -> testnet snapshot
 #   * BRANCH_NAME   docs update only for release-line builds
 #
-# Env knobs: DOCS_DIR, BUILD_SRC, DRY_RUN=1 (generate + validate, no git writes).
-# Requires: python3 (stdlib only).
+# Env knobs: DOCS_DIR, BUILD_SRC, PYTHON, DRY_RUN=1 (generate + validate, no git writes).
+# Requires: Python >= 3.5, stdlib only. The build machine is Ubuntu 16.04
+# (python3 == 3.5.2), which is why api_version.py stays 3.5-compatible.
 
 set -e
 
@@ -23,6 +24,18 @@ DOCS_DIR="${DOCS_DIR:-/home/user/zano-docs}"
 BUILD_SRC="${BUILD_SRC:-/home/user/zano-custom-branch/build/release/src}"
 ZANOD="${daemon_path:-$BUILD_SRC/zanod}"
 SIMPLEWALLET="${wallet_path:-$BUILD_SRC/simplewallet}"
+PY="${PYTHON:-python3}"
+
+# Check the interpreter up front: an unsupported one otherwise surfaces as a
+# bare SyntaxError from api_version.py, which reads like a broken script.
+if ! command -v "$PY" >/dev/null 2>&1; then
+  echo "ERROR: '$PY' not found — api_version.py needs Python >= 3.5 (set PYTHON=)" >&2
+  exit 1
+fi
+if ! "$PY" -c 'import sys; sys.exit(0 if sys.version_info[:2] >= (3, 5) else 1)'; then
+  echo "ERROR: $("$PY" -V 2>&1) is too old — api_version.py needs Python >= 3.5 (set PYTHON=)" >&2
+  exit 1
+fi
 
 # Only release-line builds feed the published reference. Feature/develop builds
 # are skipped: the Mainnet version tracks releases, and develop can diverge from
@@ -60,18 +73,18 @@ if [ "${DRY_RUN:-}" != "1" ]; then
 fi
 
 if [ "$network" = testnet ]; then
-  python3 scripts/api_version.py testnet \
+  "$PY" scripts/api_version.py testnet \
     --zanod "$ZANOD" --simplewallet "$SIMPLEWALLET" \
     --label "Testnet (${version_core})"
 else
   # rolls the current version forward; crossing a release line
   # (e.g. 2.2.1 -> 2.3.0) auto-archives the outgoing release first
-  python3 scripts/api_version.py rollover \
+  "$PY" scripts/api_version.py rollover \
     --zanod "$ZANOD" --simplewallet "$SIMPLEWALLET" \
     --label "Mainnet (${version_core})"
 fi
 
-python3 scripts/api_version.py check
+"$PY" scripts/api_version.py check
 
 if [ "${DRY_RUN:-}" = "1" ]; then
   echo "DRY_RUN=1 — generated and validated, no git writes"
