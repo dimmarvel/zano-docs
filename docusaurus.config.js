@@ -49,7 +49,7 @@ const config = {
   plugins: [
     [
       // Versioned RPC API reference: own instance, same folder, same URLs.
-      // lastVersion "current" + path "" keeps the working folder (mainnet)
+      // lastVersion "current" + path "" keeps the working folder (release)
       // at the clean base path even once snapshots exist — do not remove.
       "@docusaurus/plugin-content-docs",
       {
@@ -67,12 +67,12 @@ const config = {
         lastVersion: "current",
         versions: {
           current: {
-            label: "Mainnet (2.2.1.506)",
+            label: "Release (2.2.1.506)",
             path: "",
           },
-          testnet: {
-            label: "Testnet (2.2.1.502)",
-            path: "testnet",
+          develop: {
+            label: "Develop (2.2.1.502)",
+            path: "develop",
             banner: "unreleased",
           },
         },
@@ -93,6 +93,16 @@ const config = {
           // deeplinks page lives in the Build tab but had a /use/ slug
           { from: "/docs/use/deeplinks", to: "/docs/build/deeplinks" },
         ],
+        // API versions moved from networks (mainnet/testnet) to branches
+        // (release/develop) in 2026-08: /rpc-api/testnet/** -> /rpc-api/develop/**.
+        // Generated per page so every method URL survives the rename.
+        createRedirects(existingPath) {
+          const devBase = "/docs/build/rpc-api/develop/";
+          if (existingPath.startsWith(devBase)) {
+            return [existingPath.replace(devBase, "/docs/build/rpc-api/testnet/")];
+          }
+          return undefined;
+        },
       },
     ],
   ],

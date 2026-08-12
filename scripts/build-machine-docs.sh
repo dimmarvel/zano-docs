@@ -9,10 +9,15 @@
 # Everything it needs it derives itself, so no variables have to be exported:
 #   * binaries      $daemon_path / $wallet_path if set, else the standard
 #                   build output path (override with BUILD_SRC)
-#   * version+net   read from the binary itself (`--version`), which is the
-#                   source of truth: "Zano v2.2.1.505[...]" -> mainnet,
-#                   "Zano_testnet v..." -> testnet snapshot
-#   * BRANCH_NAME   docs update only for release-line builds
+#   * version       read from the binary itself (`--version`), the source of
+#                   truth for the version number and the network it was built
+#                   for ("Zano v..." vs "Zano_testnet v...")
+#   * BRANCH_NAME   decides WHICH docs version is written:
+#                     release -> the published reference (rollover)
+#                     develop -> the develop snapshot
+#                   anything else is skipped; those are the only two branches
+#                   that publish. The network is not a version any more, it is
+#                   only used to reject a testnet binary on the release job.
 #
 # Env knobs: DOCS_DIR, BUILD_SRC, PYTHON, DRY_RUN=1 (generate + validate, no git writes).
 # Requires: Python >= 3.5, stdlib only. The build machine is Ubuntu 16.04
@@ -37,13 +42,14 @@ if ! "$PY" -c 'import sys; sys.exit(0 if sys.version_info[:2] >= (3, 5) else 1)'
   exit 1
 fi
 
-# Only release-line builds feed the published reference. Feature/develop builds
-# are skipped: the Mainnet version tracks releases, and develop can diverge from
-# the release lineage. An unset BRANCH_NAME (manual run) is allowed.
-case "${BRANCH_NAME-release}" in
-  release|master|main|"") ;;
+# Docs versions track branches: `release` is the published reference, `develop`
+# is the preview snapshot. Nothing else publishes. An unset BRANCH_NAME (manual
+# run) is treated as release, which is the historical behavior.
+branch="${BRANCH_NAME:-release}"
+case "$branch" in
+  release|develop) ;;
   *)
-    echo "BRANCH_NAME='$BRANCH_NAME' is not a release branch — skipping docs update"
+    echo "BRANCH_NAME='$branch' is not a publishing branch (release|develop) — skipping docs update"
     exit 0
     ;;
 esac
@@ -64,7 +70,17 @@ case "$version_line" in
   Zano_testnet*) network=testnet ;;
   *)             network=mainnet ;;
 esac
-echo "Writing documentation... ($network, $version_core)"
+
+# The branch decides which docs version is written; the network is only checked.
+# A testnet-config binary must never overwrite the published release reference:
+# it exposes methods (start_mining/stop_mining) a release build does not, so
+# that combination means the job is misconfigured.
+if [ "$branch" = release ] && [ "$network" = testnet ]; then
+  echo "ERROR: refusing to roll the release reference from a testnet binary ($version_line)" >&2
+  echo "       the release job must build a mainnet-config binary" >&2
+  exit 1
+fi
+echo "Writing documentation... ($branch branch, $network build, $version_core)"
 
 cd "$DOCS_DIR"
 if [ "${DRY_RUN:-}" != "1" ]; then
@@ -72,16 +88,16 @@ if [ "${DRY_RUN:-}" != "1" ]; then
   git pull -r
 fi
 
-if [ "$network" = testnet ]; then
-  "$PY" scripts/api_version.py testnet \
+if [ "$branch" = develop ]; then
+  "$PY" scripts/api_version.py snapshot --name develop \
     --zanod "$ZANOD" --simplewallet "$SIMPLEWALLET" \
-    --label "Testnet (${version_core})"
+    --label "Develop (${version_core})"
 else
-  # rolls the current version forward; crossing a release line
+  # rolls the release version forward; crossing a release line
   # (e.g. 2.2.1 -> 2.3.0) auto-archives the outgoing release first
   "$PY" scripts/api_version.py rollover \
     --zanod "$ZANOD" --simplewallet "$SIMPLEWALLET" \
-    --label "Mainnet (${version_core})"
+    --label "Release (${version_core})"
 fi
 
 "$PY" scripts/api_version.py check
