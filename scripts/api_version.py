@@ -1,24 +1,28 @@
 #!/usr/bin/env python3
 """Release lifecycle tool for the versioned RPC API reference.
 
+Versions track BRANCHES, not networks: `release` is the published reference and
+`develop` is the preview snapshot. Only those two branches publish.
+
 The RPC reference is a separate Docusaurus docs instance (pluginId "api"):
-  api-reference/            working dir  = Mainnet (current)
-  api_versioned_docs/       placed snapshots (version-testnet, version-<release>)
+  api-reference/            working dir  = Release (current)
+  api_versioned_docs/       placed snapshots (version-develop, version-<release>)
   api_versioned_sidebars/   one sidebars json per snapshot
   api_versions.json         dropdown order below "current" (user-facing!)
 
 Commands
-  testnet  --zanod X --simplewallet Y --label L   regenerate the testnet snapshot
-  archive  --name 2.2.1                           snapshot current mainnet as a release
-  rollover --zanod X --simplewallet Y --label L   replace mainnet from a release binary
+  snapshot --name develop --zanod X --simplewallet Y --label L   regenerate a branch snapshot
+  archive  --name 2.2.1                           snapshot the current release as an archive
+  rollover --zanod X --simplewallet Y --label L   replace the release ref from a release binary
   check                                           validate invariants (CI-safe, no writes)
 
 Rules encoded here (do not bypass):
   * generation goes to a temp dir first and is sanity-checked before replacing anything
   * rollover refuses to run unless an archive of the current content exists
   * hand-written files (the four intro pages, sidebars) are never overwritten by generation
-  * api_versions.json is normalized to ["testnet", <archives newest-first>]
+  * api_versions.json is normalized to [<branches>, <archives newest-first>]
   * provenance (generator version stamp) must match the configured label
+  * a branch snapshot can never touch the release version, and vice versa
 
 MUST STAY PYTHON 3.5 COMPATIBLE. The build machine that runs this on every
 release build is Ubuntu 16.04 (python3 == 3.5.2). Do not introduce:
@@ -125,21 +129,27 @@ def set_config_label(version_key, label):
     print("config: {} label -> {}".format(version_key, label))
 
 
+def is_archive(name):
+    """Archives are release lines ("2.2.1"); branch snapshots are names ("develop")."""
+    return bool(re.match(r"^\d+(\.\d+)*$", name))
+
+
 def normalize_versions_json():
     versions = json.loads(VJSON.read_text(encoding="utf-8"))
+    branches = sorted([v for v in versions if not is_archive(v)])
     archives = sorted(
-        [v for v in versions if v != "testnet"],
+        [v for v in versions if is_archive(v)],
         key=lambda v: [int(x) for x in re.findall(r"\d+", v)],
         reverse=True,
     )
-    ordered = (["testnet"] if "testnet" in versions else []) + archives
+    ordered = branches + archives
     VJSON.write_text(json.dumps(ordered) + "\n", encoding="utf-8")
     print("api_versions.json -> {}".format(ordered))
 
 
 def add_provenance(overview_path, stamp, extra=""):
     t = overview_path.read_text(encoding="utf-8")
-    t = re.sub(r":::info (Testnet API reference|Archived API reference)\n.*?\n:::\n", "", t, flags=re.S)
+    t = re.sub(r":::info [A-Za-z0-9_.-]+ API reference\n.*?\n:::\n", "", t, flags=re.S)
     note = (":::info {}\n".format(extra or "API reference") +
             "Generated from `{}` on {} by scripts/api_version.py.\n:::\n".format(
                 stamp, date.today().isoformat()))
@@ -151,16 +161,20 @@ def add_provenance(overview_path, stamp, extra=""):
     overview_path.write_text("\n".join(lines), encoding="utf-8")
 
 
-def cmd_testnet(args):
+def cmd_snapshot(args):
+    """Regenerate a branch snapshot (develop). Never touches the release version."""
+    name = args.name
+    if is_archive(name):
+        die("'{}' looks like a release line; snapshots are branch names (e.g. develop)".format(name))
     d, w = generate_pair(args.zanod, args.simplewallet)
-    target = VDOCS / "version-testnet"
+    target = VDOCS / "version-{}".format(name)
     if not target.exists():
-        die("version-testnet does not exist; create it once manually or restore from git")
+        die("version-{} does not exist; create it once manually or restore from git".format(name))
     replace_generated(target, d, w)
-    add_provenance(target / "overview.md", stamp_of(d), "Testnet API reference")
-    set_config_label("testnet", args.label)
+    add_provenance(target / "overview.md", stamp_of(d), "{} API reference".format(name.capitalize()))
+    set_config_label(name, args.label)
     normalize_versions_json()
-    print("testnet snapshot refreshed — run `check`, build, and review the diff before committing")
+    print("{} snapshot refreshed — run `check`, build, and review the diff before committing".format(name))
 
 
 def cmd_archive(args):
@@ -203,14 +217,15 @@ def cmd_rollover(args):
                 name = old_line
 
             cmd_archive(_A)
-    elif not any(p.name.startswith("version-") and p.name != "version-testnet" for p in VDOCS.iterdir()):
+    elif not any(p.name.startswith("version-") and is_archive(p.name[len("version-"):])
+                 for p in VDOCS.iterdir()):
         die("no archive snapshot exists — run `archive` first (rollover refuses to destroy history)")
     replace_generated(WORK, d, w)
     for page in INTRO_PAGES:
         if not (WORK / page).exists():
             die("hand-written page {} missing after rollover — aborting, restore from git".format(page))
     set_config_label("current", args.label)
-    print("mainnet rolled over — run `check`, build, review diff (expected delta only), then commit.")
+    print("release rolled over — run `check`, build, review diff (expected delta only), then commit.")
     print("when the build bot commits later into docs/build/rpc-api/, verify it is a no-op vs api-reference/")
 
 
@@ -222,8 +237,14 @@ def cmd_check(_args):
     if (WORK / "_category_.json").exists():
         problems.append("vestigial api-reference/_category_.json present")
     versions = json.loads(VJSON.read_text(encoding="utf-8"))
-    if versions and "testnet" in versions and versions[0] != "testnet":
-        problems.append("api_versions.json order wrong (testnet must be first): {}".format(versions))
+    seen_archive = False
+    for v in versions:
+        if is_archive(v):
+            seen_archive = True
+        elif seen_archive:
+            problems.append(
+                "api_versions.json order wrong (branch snapshots must precede archives): {}".format(versions))
+            break
     for v in versions:
         if not (VDOCS / "version-{}".format(v)).is_dir():
             problems.append("version '{}' listed but api_versioned_docs/version-{} missing".format(v, v))
@@ -231,7 +252,7 @@ def cmd_check(_args):
             problems.append("sidebars json missing for version '{}'".format(v))
     cfg = CONFIG.read_text(encoding="utf-8")
     stamp = stamp_of(WORK / "daemon-rpc-api") or ""
-    m = re.search(r'current: \{\n\s*label: "Mainnet \(([^)]+)\)"', cfg)
+    m = re.search(r'current: \{\n\s*label: "Release \(([^)]+)\)"', cfg)
     if m and m.group(1) not in stamp:
         problems.append("current label '{}' does not match page stamp '{}'".format(m.group(1), stamp))
     if problems:
@@ -239,7 +260,7 @@ def cmd_check(_args):
         for p in problems:
             print("  -", p)
         sys.exit(1)
-    print("check OK: {} snapshot(s) {}, mainnet stamp {}".format(len(versions), versions, stamp))
+    print("check OK: {} snapshot(s) {}, release stamp {}".format(len(versions), versions, stamp))
 
 
 def main():
@@ -247,7 +268,7 @@ def main():
     sub = ap.add_subparsers(dest="cmd")
     sub.required = True  # add_subparsers(required=) is 3.7+; this form works everywhere
     for name, fn, needs in (
-        ("testnet", cmd_testnet, True),
+        ("snapshot", cmd_snapshot, True),
         ("archive", cmd_archive, False),
         ("rollover", cmd_rollover, True),
         ("check", cmd_check, False),
@@ -258,6 +279,8 @@ def main():
             p.add_argument("--zanod", required=True)
             p.add_argument("--simplewallet", required=True)
             p.add_argument("--label", required=True)
+        if name == "snapshot":
+            p.add_argument("--name", required=True, help="branch name, e.g. develop")
         elif name == "archive":
             p.add_argument("--name", required=True, help="release name, e.g. 2.2.1")
     args = ap.parse_args()

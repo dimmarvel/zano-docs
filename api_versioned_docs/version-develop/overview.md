@@ -4,8 +4,10 @@ sidebar_position: 1
 
 # RPC API Overview
 
-:::info Testnet API reference
-Generated from `2.2.1.502[testnet-76a791c]` on 2026-08-04 by scripts/api_version.py.
+:::info Develop API reference
+Awaiting the first develop build. The pages below were generated from
+`2.2.1.502[testnet-76a791c]` on 2026-08-04 by scripts/api_version.py and are
+replaced wholesale by the next develop build.
 :::
 
 
