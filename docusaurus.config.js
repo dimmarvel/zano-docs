@@ -71,7 +71,7 @@ const config = {
             path: "",
           },
           develop: {
-            label: "Develop (2.2.1.502)",
+            label: "Develop (2.2.1.506)",
             path: "develop",
             banner: "unreleased",
           },

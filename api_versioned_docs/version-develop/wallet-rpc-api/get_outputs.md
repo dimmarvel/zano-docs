@@ -65,4 +65,4 @@ URL: ```http:://127.0.0.1:11211/json_rpc```
       "tx_out_index": Index of this output within the producing transaction's output vector.
 
 ```
-<sub>Auto-doc built with: 2.2.1.502[testnet-76a791c]</sub>
+<sub>Auto-doc built with: 2.2.1.506[16e457b-develop]</sub>

@@ -57,4 +57,4 @@ URL: ```http:://127.0.0.1:11211/json_rpc```
     "status": Status of the call.
 
 ```
-<sub>Auto-doc built with: 2.2.1.502[testnet-76a791c]</sub>
+<sub>Auto-doc built with: 2.2.1.506[16e457b-develop]</sub>

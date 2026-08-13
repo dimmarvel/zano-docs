@@ -1,4 +1,4 @@
-Retrieves the transaction history for a specific gateway address.
+Retrieves the transaction history for a gateway address, if a view secret key is provided, payment_id/attachments are decrypted server-side (this exposes the key to the daemon operator). If it is omitted, the daemon does NOT decrypt and returns the raw transactions instead, so the caller can decrypt locally without sending the key to the daemon (preferred - see gateway_rpc_proxy).
 
 URL: ```http:://127.0.0.1:11211/json_rpc```
 ### Request: 
@@ -19,7 +19,7 @@ URL: ```http:://127.0.0.1:11211/json_rpc```
 ```
     "count": The number of transactions to retrieve from the specified offset.
     "gateway_address": The gateway address for which transaction history is being requested.
-    "gateway_view_secret_key": View secret key to decrypt attachments and payment id
+    "gateway_view_secret_key": Optional, if provided, the daemon decrypts payment_id/attachments server-side, if omitted, raw_txs are returned for client-side decryption instead.
     "offset": The offset in the transaction history from which to start retrieval.
 
 ```
@@ -106,7 +106,7 @@ URL: ```http:://127.0.0.1:11211/json_rpc```
     "status": Status of the call.
     "status_error": Error description if the call failed.
     "total_transactions": Total number of transactions associated with the specified gateway address.
-    "transactions": List of transactions associated with the specified gateway address, retrieved based on the provided parameters.
+    "transactions": List of transactions, decrypted server-side if a view secret key was provided, otherwise the public part only - decrypt locally from raw_txs.
       "ado": "Asset Descriptor Operation" if it was present in transaction
         "operation_type": Asset operation type identifier
         "opt_amount_commitment": (optional) Asset operation amount commitment (register/emit/burn).
@@ -143,4 +143,4 @@ URL: ```http:://127.0.0.1:11211/json_rpc```
       "unlock_time": Unlock time of this transfer (if present)
 
 ```
-<sub>Auto-doc built with: 2.2.1.502[testnet-76a791c]</sub>
+<sub>Auto-doc built with: 2.2.1.506[16e457b-develop]</sub>

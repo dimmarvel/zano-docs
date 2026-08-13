@@ -12,8 +12,7 @@ URL: ```http:://127.0.0.1:11211/json_rpc```
     "destinations": [{
       "address": "ZxBvJDuQjMG9R2j4WnYUhBYNrwZPwuyXrC7FHdVmWqaESgowDvgfWtiXeNGu8Px9B24pkmjsA39fzSSiEQG1ekB225ZnrMTBp",
       "amount": 10000000000000,
-      "asset_id": "cc608f59f8080e2fbfe3c8c80eb6e6a953d47cf2d6aebd345bada3a1cab99852",
-      "payment_id": 1020394
+      "asset_id": "cc608f59f8080e2fbfe3c8c80eb6e6a953d47cf2d6aebd345bada3a1cab99852"
     }],
     "fee": 100000000,
     "gateway_view_secret_key": "28bdc0a8...",
@@ -36,7 +35,6 @@ URL: ```http:://127.0.0.1:11211/json_rpc```
       "address": Destination address
       "amount": Amount to transfer to destination
       "asset_id": Asset id to transfer
-      "payment_id": [optional] Intrinsic 8-byte payment id for this destination. Incompatible with integrated addresses.
     "fee": Transaction fee for the gateway transfer.
     "gateway_view_secret_key": GW view secret key, used as sender-side key when encrypting tx_extra
     "origin_gateway_id": Origin gateway ID for the transfer.
@@ -55,21 +53,25 @@ URL: ```http:://127.0.0.1:11211/json_rpc```
   "id": 0,
   "jsonrpc": "2.0",
   "result": {
+    "outputs_addresses": ["ZxDNaMeZjwCjnHuU5gUNyrP1pM3U5vckbakzzV6dEHyDYeCpW8XGLBFTshcaY8LkG9RQn7FsQx8w2JeJzJwPwuDm2NfixPAXf","ZxBvJDuQjMG9R2j4WnYUhBYNrwZPwuyXrC7FHdVmWqaESgowDvgfWtiXeNGu8Px9B24pkmjsA39fzSSiEQG1ekB225ZnrMTBp"],
     "status": "OK",
     "status_error": "",
     "tx_blob": "0100000001...",
     "tx_hash_to_sign": "b1c3d4e5f60718293a4b5c6d7e8f90123456789abcdef0123456789abcdef012",
-    "tx_id": "a6e8da986858e6825fce7a192097e6afae4e889cabe853a9c29b964985b23da8"
+    "tx_id": "a6e8da986858e6825fce7a192097e6afae4e889cabe853a9c29b964985b23da8",
+    "tx_secret_key": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcd0f"
   }
 }
 ```
 ### Response description: 
 ```
+    "outputs_addresses": Destination addresses list for decrypt_tx_details and similar methods
     "status": Status of the call.
     "status_error": Error description if the call failed.
     "tx_blob": Hex representation of the transaction blob.
     "tx_hash_to_sign": Hash to be signed by the current owner for the gateway input
     "tx_id": Actual hash of the transaction
+    "tx_secret_key": Secret key of the transaction.
 
 ```
-<sub>Auto-doc built with: 2.2.1.502[testnet-76a791c]</sub>
+<sub>Auto-doc built with: 2.2.1.506[16e457b-develop]</sub>
