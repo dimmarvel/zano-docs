@@ -66,6 +66,11 @@ const config = {
         rehypePlugins: [rehypeKatex],
         lastVersion: "current",
         versions: {
+          "2.2.1": {
+            label: "2.2.1 (2.2.1.502 · 72b939e)",
+            path: "2.2.1",
+            banner: "unmaintained",
+          },
           current: {
             label: "Release (2.2.1.506)",
             path: "",

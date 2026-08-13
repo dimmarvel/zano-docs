@@ -12,7 +12,7 @@ The RPC reference is a separate Docusaurus docs instance (pluginId "api"):
 
 Commands
   snapshot --name develop --zanod X --simplewallet Y --label L   regenerate a branch snapshot
-  archive  --name 2.2.1                           snapshot the current release as an archive
+  archive  --name 2.2.1 [--refresh]               snapshot the current release as an archive
   rollover --zanod X --simplewallet Y --label L   replace the release ref from a release binary
   check                                           validate invariants (CI-safe, no writes)
 
@@ -23,6 +23,10 @@ Rules encoded here (do not bypass):
   * api_versions.json is normalized to [<branches>, <archives newest-first>]
   * provenance (generator version stamp) must match the configured label
   * a branch snapshot can never touch the release version, and vice versa
+  * a release line is re-archived as it is superseded, so the archive holds what
+    that line shipped last rather than whichever build first created it
+  * every version in api_versions.json has an explicit config entry, so labels
+    all read "<name> (<build> · <commit>)" instead of a bare version name
 
 MUST STAY PYTHON 3.5 COMPATIBLE. The build machine that runs this on every
 release build is Ubuntu 16.04 (python3 == 3.5.2). Do not introduce:
@@ -119,14 +123,63 @@ def replace_generated(target_root, daemon_dir, wallet_dir):
             cat.write_text(cat_backup, encoding="utf-8")
 
 
+def config_key(name):
+    """Version keys that are not valid JS identifiers must be quoted ("2.2.1")."""
+    return name if re.match(r"^[A-Za-z_$][A-Za-z0-9_$]*$", name) else '"{}"'.format(name)
+
+
+def stamp_parts(stamp):
+    """'2.2.1.502[72b939e]' -> ('2.2.1.502', '72b939e'); commit may be None.
+
+    The bracket content varies by build ("16e457b-develop", "testnet-76a791c"),
+    so the commit is the first hash-shaped run inside it.
+    """
+    m = re.match(r"v?(\d[\d.]*)(?:\[(.*)\])?", stamp or "")
+    if not m:
+        return (stamp or "", None)
+    commit = re.search(r"[0-9a-fA-F]{7,}", m.group(2) or "")
+    return m.group(1).rstrip("."), (commit.group(0) if commit else None)
+
+
+def styled_label(name, stamp):
+    """Dropdown labels all read "<name> (<build>[ · <commit>])"."""
+    version, commit = stamp_parts(stamp)
+    detail = version if not commit else "{} · {}".format(version, commit)
+    return "{} ({})".format(name, detail) if detail else name
+
+
 def set_config_label(version_key, label):
     t = CONFIG.read_text(encoding="utf-8")
-    pattern = r'({}: \{{\n\s*label: ")[^"]*(")'.format(version_key)
-    new, n = re.subn(pattern, r"\g<1>" + label + r"\g<2>", t, count=1)
+    pattern = r'({}: \{{\n\s*label: ")[^"]*(")'.format(re.escape(config_key(version_key)))
+    # lambda replacement: labels contain "·" and must not be read as backrefs
+    new, n = re.subn(pattern, lambda m: m.group(1) + label + m.group(2), t, count=1)
     if n != 1:
         die("could not update label for version '{}' in docusaurus.config.js".format(version_key))
     CONFIG.write_text(new, encoding="utf-8")
     print("config: {} label -> {}".format(version_key, label))
+
+
+def ensure_config_version(name, label, path=None, banner=None):
+    """Update the version's label, inserting the whole entry if it is missing.
+
+    Archives would otherwise fall back to the Docusaurus default label (the bare
+    version name), which reads inconsistently next to Release/Develop.
+    """
+    key = config_key(name)
+    t = CONFIG.read_text(encoding="utf-8")
+    if re.search(r"^\s*{}: \{{".format(re.escape(key)), t, re.M):
+        set_config_label(name, label)
+        return
+    entry = '          {}: {{\n            label: "{}",\n            path: "{}",\n'.format(
+        key, label, path if path is not None else name)
+    if banner:
+        entry += '            banner: "{}",\n'.format(banner)
+    entry += "          },\n"
+    new, n = re.subn(r"(\n\s*versions: \{\n)", lambda m: m.group(1) + entry, t, count=1)
+    if n != 1:
+        die("could not find the versions block in docusaurus.config.js")
+    CONFIG.write_text(new, encoding="utf-8")
+    print("config: added version {} -> {}".format(name, label))
 
 
 def is_archive(name):
@@ -178,23 +231,37 @@ def cmd_snapshot(args):
 
 
 def cmd_archive(args):
+    """Snapshot the current release reference as an archive of a release line.
+
+    --refresh replaces an existing archive. A line is archived while it is still
+    current (so something is preserved early) and again as it is superseded, so
+    the archive ends up holding what that line actually shipped last. Without
+    the second pass the archive keeps whichever mid-line build created it.
+    """
     name = args.name
+    refresh = getattr(args, "refresh", False)
     target = VDOCS / "version-{}".format(name)
-    if target.exists():
-        die("version-{} already exists".format(name))
+    if target.exists() and not refresh:
+        die("version-{} already exists (pass --refresh to replace it with the "
+            "current release reference)".format(name))
     if subprocess.run(["git", "-C", str(ROOT), "diff", "--quiet", "--", "api-reference"]).returncode != 0:
         die("api-reference/ has uncommitted changes; archive from a clean, pinned state")
+    stamp = stamp_of(WORK / "daemon-rpc-api")
+    if target.exists():
+        print("refreshing archive version-{} ({} -> {})".format(
+            name, stamp_of(target / "daemon-rpc-api"), stamp))
+        shutil.rmtree(str(target))
     shutil.copytree(str(WORK), str(target))
     (VSIDE / "version-{}-sidebars.json".format(name)).write_text(
         json.dumps(SIDEBAR_TEMPLATE, indent=2) + "\n", encoding="utf-8")
-    add_provenance(target / "overview.md", stamp_of(WORK / "daemon-rpc-api"), "Archived API reference")
+    add_provenance(target / "overview.md", stamp, "Archived API reference")
+    ensure_config_version(name, styled_label(name, stamp), path=name, banner="unmaintained")
     versions = json.loads(VJSON.read_text(encoding="utf-8"))
     if name not in versions:
         versions.append(name)
         VJSON.write_text(json.dumps(versions) + "\n", encoding="utf-8")
     normalize_versions_json()
-    print("archived current mainnet as version-{} "
-          "(label/path/banner use Docusaurus defaults)".format(name))
+    print("archived the release reference as version-{} ({})".format(name, stamp))
 
 
 def release_line(stamp):
@@ -208,15 +275,18 @@ def cmd_rollover(args):
     old_line = release_line(stamp_of(WORK / "daemon-rpc-api"))
     new_line = release_line(stamp_of(d))
     if old_line and new_line and old_line != new_line:
-        # crossing a release boundary: preserve the old release before replacing it
-        if not (VDOCS / "version-{}".format(old_line)).exists():
-            print("release boundary {} -> {}: auto-archiving {} first".format(
-                old_line, new_line, old_line))
+        # Crossing a release boundary: capture the outgoing line before replacing
+        # it. Always, even if an archive of that line already exists — an archive
+        # made mid-line holds an older build, and this is the only moment the
+        # line's final state can still be read out of api-reference/.
+        print("release boundary {} -> {}: archiving {} first".format(
+            old_line, new_line, old_line))
 
-            class _A:
-                name = old_line
+        class _A:
+            name = old_line
+            refresh = True
 
-            cmd_archive(_A)
+        cmd_archive(_A)
     elif not any(p.name.startswith("version-") and is_archive(p.name[len("version-"):])
                  for p in VDOCS.iterdir()):
         die("no archive snapshot exists — run `archive` first (rollover refuses to destroy history)")
@@ -245,12 +315,16 @@ def cmd_check(_args):
             problems.append(
                 "api_versions.json order wrong (branch snapshots must precede archives): {}".format(versions))
             break
+    cfg = CONFIG.read_text(encoding="utf-8")
     for v in versions:
         if not (VDOCS / "version-{}".format(v)).is_dir():
             problems.append("version '{}' listed but api_versioned_docs/version-{} missing".format(v, v))
         if not (VSIDE / "version-{}-sidebars.json".format(v)).is_file():
             problems.append("sidebars json missing for version '{}'".format(v))
-    cfg = CONFIG.read_text(encoding="utf-8")
+        # without an explicit entry Docusaurus falls back to the bare version
+        # name, which reads inconsistently next to Release/Develop
+        if not re.search(r"^\s*{}: \{{".format(re.escape(config_key(v))), cfg, re.M):
+            problems.append("version '{}' has no entry in docusaurus.config.js".format(v))
     stamp = stamp_of(WORK / "daemon-rpc-api") or ""
     m = re.search(r'current: \{\n\s*label: "Release \(([^)]+)\)"', cfg)
     if m and m.group(1) not in stamp:
@@ -283,6 +357,8 @@ def main():
             p.add_argument("--name", required=True, help="branch name, e.g. develop")
         elif name == "archive":
             p.add_argument("--name", required=True, help="release name, e.g. 2.2.1")
+            p.add_argument("--refresh", action="store_true",
+                           help="replace an existing archive with the current release reference")
     args = ap.parse_args()
     args.fn(args)
 

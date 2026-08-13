@@ -27,7 +27,7 @@ hand only when reproducing or repairing a snapshot.
 
 ## Release rollover (HF6 and every release after)
 
-1. `python3 scripts/api_version.py archive --name 2.2.1`   ← preserves the current release first; refuses on dirty tree
+1. `python3 scripts/api_version.py archive --name 2.2.1`   ← preserves the current release first; refuses on dirty tree (add `--refresh` to replace an archive that already exists)
 2. `python3 scripts/api_version.py rollover --zanod <release zanod> --simplewallet <release simplewallet> --label "Release (2.3.0.XXX)"`
 3. `python3 scripts/api_version.py check`
 4. `npm run build` — must be green; spot-check the dropdown, banners, and a few method pages
@@ -70,5 +70,11 @@ The release build script's old doc section (rm + `--generate-rpc-autodoc` into
   (`src/components/ApiVersionDropdown`) — the rest of the site is unversioned.
 - Never fix typos in generated pages here; they live in the C++ `DOC_DSCR`
   strings upstream (hyle-team/zano) and regeneration clobbers page edits.
-- Archived versions keep Docusaurus defaults: label = name, path = name,
-  automatic "unmaintained" banner.
+- Archives get an explicit config entry so every dropdown label reads
+  `<name> (<build> · <commit>)`; path and the "unmaintained" banner match what
+  Docusaurus would have defaulted to.
+- A release line is archived twice: once while it is still current (so history
+  exists early) and again automatically as it is superseded, which is the only
+  moment its final build can still be read out of `api-reference/`. The second
+  pass replaces the first, so the archive ends up holding what that line
+  actually shipped last. `rollover` does this for you at a release boundary.
