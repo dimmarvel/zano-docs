@@ -66,6 +66,15 @@ if [ -z "$version_core" ]; then
   echo "ERROR: could not parse version from: $version_line" >&2
   exit 1
 fi
+# The bracketed suffix carries the source commit: "2.2.1.506[16e457b-develop]".
+# Only the develop label uses it: release and develop can sit on the same build
+# number, so the number alone does not tell the two dropdown entries apart. The
+# release label must stay a bare version — `check` asserts it is a substring of
+# the page stamp, and "2.2.1.506 · eb86459" is not.
+# The bracket content varies ("16e457b-develop", "testnet-76a791c", "eb86459"),
+# so take the first hash-shaped run inside it rather than assuming a position.
+version_commit=$(echo "$version_line" | sed -n 's/.*\[\(.*\)\].*/\1/p' \
+  | grep -oE '[0-9a-fA-F]{7,}' | head -1)
 case "$version_line" in
   Zano_testnet*) network=testnet ;;
   *)             network=mainnet ;;
@@ -89,9 +98,13 @@ if [ "${DRY_RUN:-}" != "1" ]; then
 fi
 
 if [ "$branch" = develop ]; then
+  develop_label="Develop (${version_core})"
+  if [ -n "$version_commit" ]; then
+    develop_label="Develop (${version_core} · ${version_commit})"
+  fi
   "$PY" scripts/api_version.py snapshot --name develop \
     --zanod "$ZANOD" --simplewallet "$SIMPLEWALLET" \
-    --label "Develop (${version_core})"
+    --label "$develop_label"
 else
   # rolls the release version forward; crossing a release line
   # (e.g. 2.2.1 -> 2.3.0) auto-archives the outgoing release first
